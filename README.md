@@ -45,4 +45,4 @@ You can modify the `scraper.py` file to change the tags and classes for data ext
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
