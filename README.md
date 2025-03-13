@@ -1,48 +1,109 @@
-# Web Scraper
+# PolyScraper
 
-This is a simple web scraper built with Python. It fetches and parses web pages, extracting specific data according to the provided configuration.
+A configurable web scraping framework with schema validation and logging.
+
+## Features
+
+- Modular scraping components
+- Configuration-driven operation
+- BeautifulSoup/Requests based scraping
+- Pydantic schema validation
+- Rotating file logging
+- pytest test suite
 
 ## Requirements
 
-- Python 3.x
-- `requests` library
-- `beautifulsoup4` library
+- Python 3.9+
+- See [requirements.txt](requirements.txt)
 
 ## Installation
 
-1. Clone the repository:
-    ```sh
-    git clone https://github.com/yourusername/web-scraper.git
-    cd web-scraper
-    ```
+```bash
+git clone https://github.com/yourusername/polyscraper.git
+cd polyscraper
 
-2. Create a virtual environment and activate it:
-    ```sh
-    python -m venv venv
-    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-    ```
+# Create and activate virtual environment
+python -m venv venv
+venv\Scripts\activate  # Windows
 
-3. Install the required packages:
-    ```sh
-    pip install -r requirements.txt
-    ```
-
-## Usage
-
-1. Update the `url` variable in `main.py` to the target URL.
-2. Run the scraper:
-    ```sh
-    python main.py
-    ```
-
-## Logging
-
-Logs are saved to `logs/scraper.log` and also printed to the console.
+# Install dependencies
+pip install -r requirements.txt
+```
 
 ## Configuration
 
-You can modify the `scraper.py` file to change the tags and classes for data extraction according to your needs.
+1. Edit `config.py`:
+```python
+# Configure target URLs and scraping parameters
+SCRAPER_CONFIG = [
+    {
+        "url": "https://example.com",
+        "selectors": {
+            "title": "h1",
+            "content": ".main-article"
+        }
+    }
+]
+```
+
+2. Modify validation schemas in `schemas.py` for data validation:
+```python
+from pydantic import BaseModel
+
+class ScrapedData(BaseModel):
+    title: str
+    content: str
+    timestamp: datetime
+```
+
+## Usage
+
+Run with default configuration:
+```bash
+python main.py
+```
+
+Run with custom config:
+```bash
+python main.py --config custom_config.py
+```
+
+## Project Structure
+```
+polyscraper/
+├── config.py        # Main configuration
+├── schemas.py       # Data validation models
+├── scraper.py       # Core scraping logic
+├── main.py          # Entry point
+├── logging_config.py # Logging setup
+└── tests/           # Test cases
+```
+
+## Logging
+
+- Rotating logs in `logs/scraper.log`
+- Configure handlers in `logging_config.py`:
+```python
+LOG_CONFIG = {
+    "version": 1,
+    "handlers": {
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "logs/scraper.log",
+            "maxBytes": 1048576,
+            "backupCount": 3
+        }
+    }
+}
+```
+
+## Testing
+
+Run test suite with:
+```bash
+pytest tests/ -v
+```
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+MIT License - See [LICENSE](LICENSE)
