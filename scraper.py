@@ -1,23 +1,40 @@
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 from lxml import etree
 import logging
 from schemas import ScrapedData, ScrapedElement
+from config import MAX_RETRIES, RETRY_DELAY, RETRY_STATUS_FORCELIST, RETRY_METHOD_WHITELIST
 
 class WebScraper:
     def __init__(self, url):
         self.url = url
         self.soup = None
         self.logger = logging.getLogger(__name__)
+        
+        # Configure retry strategy
+        retry_strategy = Retry(
+            total=MAX_RETRIES,
+            backoff_factor=RETRY_DELAY,
+            status_forcelist=RETRY_STATUS_FORCELIST,
+            allowed_methods=RETRY_METHOD_WHITELIST
+        )
+        
+        # Create HTTP adapter with retry strategy
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session = requests.Session()
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
 
     def fetch_page(self):
         try:
-            response = requests.get(self.url)
+            response = self.session.get(self.url, timeout=10)
             response.raise_for_status()  # Check if the request was successful
             self.soup = BeautifulSoup(response.text, 'lxml')
-            self.logger.info(f"Page fetched successfully from {self.url}")
+            self.logger.info(f"Page fetched successfully from {self.url} after {response.raw.retries.total} attempts")
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"Error fetching the page: {e}")
+            self.logger.error(f"Failed to fetch page after {getattr(e.request, 'retries', 0)} attempts: {e}")
             self.soup = None
 
     def extract_headlines(self):
