@@ -7,6 +7,8 @@ class ScrapedElement(BaseModel):
     element_type: str
     css_classes: Optional[list[str]] = None
     parent_element: Optional[str] = None
+    css_selector: Optional[str] = None
+    xpath_selector: Optional[str] = None
     
     @validator('content')
     def content_not_empty(cls, v):

@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+from lxml import etree
 import logging
 from schemas import ScrapedData, ScrapedElement
 
@@ -13,7 +14,7 @@ class WebScraper:
         try:
             response = requests.get(self.url)
             response.raise_for_status()  # Check if the request was successful
-            self.soup = BeautifulSoup(response.text, 'html.parser')
+            self.soup = BeautifulSoup(response.text, 'lxml')
             self.logger.info(f"Page fetched successfully from {self.url}")
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Error fetching the page: {e}")
@@ -68,6 +69,79 @@ class WebScraper:
                 validated_elements.append(validated)
             except Exception as e:
                 self.logger.error(f"Validation failed for element: {e}")
+        
+        return ScrapedData(
+            elements=validated_elements,
+            page_title=self.soup.title.string if self.soup.title else '',
+            scraped_url=self.url
+        )
+
+    def extract_css(self, selector):
+        """Extract elements using CSS selector"""
+        if self.soup is None:
+            self.logger.warning("No soup object. Please fetch the page first.")
+            return []
+
+        elements = self.soup.select(selector)
+        self.logger.info(f"Found {len(elements)} elements with CSS selector '{selector}'")
+        
+        validated_elements = []
+        for element in elements:
+            try:
+                validated = ScrapedElement(
+                    content=element.get_text(),
+                    source_url=self.url,
+                    element_type=element.name,
+                    css_classes=element.get('class'),
+                    parent_element=str(element.parent.name) if element.parent else None,
+                    css_selector=selector
+                )
+                validated_elements.append(validated)
+            except Exception as e:
+                self.logger.error(f"Validation failed for CSS element: {e}")
+        
+        return ScrapedData(
+            elements=validated_elements,
+            page_title=self.soup.title.string if self.soup.title else '',
+            scraped_url=self.url
+        )
+
+    def extract_xpath(self, xpath):
+        """Extract elements using XPath selector"""
+        if self.soup is None:
+            self.logger.warning("No soup object. Please fetch the page first.")
+            return []
+
+        try:
+            parser = etree.HTMLParser()
+            tree = etree.fromstring(str(self.soup), parser)
+            elements = tree.xpath(xpath)
+        except Exception as e:
+            self.logger.error(f"XPath evaluation failed: {e}")
+            return []
+
+        self.logger.info(f"Found {len(elements)} elements with XPath '{xpath}'")
+        
+        validated_elements = []
+        for element in elements:
+            try:
+                if isinstance(element, str):
+                    content = element
+                    element_type = 'text'
+                else:
+                    content = element.text
+                    element_type = element.tag
+
+                validated = ScrapedElement(
+                    content=content,
+                    source_url=self.url,
+                    element_type=element_type,
+                    xpath_selector=xpath,
+                    parent_element=str(element.getparent().tag) if element.getparent() else None
+                )
+                validated_elements.append(validated)
+            except Exception as e:
+                self.logger.error(f"Validation failed for XPath element: {e}")
         
         return ScrapedData(
             elements=validated_elements,
