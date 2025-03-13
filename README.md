@@ -19,8 +19,8 @@ A configurable web scraping framework with schema validation and logging.
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/polyscraper.git
-cd polyscraper
+git clone https://github.com/yourusername/pyscraper.git
+cd pyscraper
 
 # Create and activate virtual environment
 python -m venv venv
