@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import logging
+from schemas import ScrapedData, ScrapedElement
 
 class WebScraper:
     def __init__(self, url):
@@ -23,9 +24,28 @@ class WebScraper:
             self.logger.warning("No soup object. Please fetch the page first.")
             return []
 
-        headlines = self.soup.find_all('h1')  # Adjust the tag and class based on the website structure
+        headlines = self.soup.find_all('h1')
         self.logger.info(f"Found {len(headlines)} headlines.")
-        return [headline.get_text() for headline in headlines]
+        
+        validated_elements = []
+        for headline in headlines:
+            try:
+                validated = ScrapedElement(
+                    content=headline.get_text(),
+                    source_url=self.url,
+                    element_type='h1',
+                    css_classes=headline.get('class'),
+                    parent_element=str(headline.parent.name) if headline.parent else None
+                )
+                validated_elements.append(validated)
+            except Exception as e:
+                self.logger.error(f"Validation failed for headline: {e}")
+        
+        return ScrapedData(
+            elements=validated_elements,
+            page_title=self.soup.title.string if self.soup.title else '',
+            scraped_url=self.url
+        )
 
     def extract_data(self, tag, class_name=None):
         if self.soup is None:
@@ -34,4 +54,23 @@ class WebScraper:
 
         elements = self.soup.find_all(tag, class_=class_name)
         self.logger.info(f"Found {len(elements)} elements with tag '{tag}' and class '{class_name}'.")
-        return [element.get_text() for element in elements]
+        
+        validated_elements = []
+        for element in elements:
+            try:
+                validated = ScrapedElement(
+                    content=element.get_text(),
+                    source_url=self.url,
+                    element_type=tag,
+                    css_classes=element.get('class'),
+                    parent_element=str(element.parent.name) if element.parent else None
+                )
+                validated_elements.append(validated)
+            except Exception as e:
+                self.logger.error(f"Validation failed for element: {e}")
+        
+        return ScrapedData(
+            elements=validated_elements,
+            page_title=self.soup.title.string if self.soup.title else '',
+            scraped_url=self.url
+        )
