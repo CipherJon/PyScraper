@@ -1,4 +1,4 @@
-# PolyScraper
+# PyScraper
 
 A configurable web scraping framework with schema validation and logging.
 
