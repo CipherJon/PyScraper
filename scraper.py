@@ -5,13 +5,18 @@ from bs4 import BeautifulSoup
 from lxml import etree
 import logging
 from schemas import ScrapedData, ScrapedElement
-from config import MAX_RETRIES, RETRY_DELAY, RETRY_STATUS_FORCELIST, RETRY_METHOD_WHITELIST
+from config import MAX_RETRIES, RETRY_DELAY, RETRY_STATUS_FORCELIST, RETRY_METHOD_WHITELIST, USER_AGENTS, PROXIES
+from typing import Optional, List
+import random
 
 class WebScraper:
-    def __init__(self, url):
+    def __init__(self, url: str, proxies: Optional[List[str]] = None, user_agents: Optional[List[str]] = None):
         self.url = url
         self.soup = None
         self.logger = logging.getLogger(__name__)
+        self.proxies = proxies or PROXIES
+        self.user_agents = user_agents or USER_AGENTS
+        self.current_proxy_idx = 0
         
         # Configure retry strategy
         retry_strategy = Retry(
@@ -29,7 +34,19 @@ class WebScraper:
 
     def fetch_page(self):
         try:
-            response = self.session.get(self.url, timeout=10)
+            headers = {'User-Agent': random.choice(self.user_agents)} if self.user_agents else {}
+            
+            proxy = None
+            if self.proxies:
+                proxy = {'http': self.proxies[self.current_proxy_idx % len(self.proxies)]}
+                self.current_proxy_idx += 1
+            
+            response = self.session.get(
+                self.url,
+                timeout=10,
+                headers=headers,
+                proxies=proxy
+            )
             response.raise_for_status()  # Check if the request was successful
             self.soup = BeautifulSoup(response.text, 'lxml')
             self.logger.info(f"Page fetched successfully from {self.url} after {response.raw.retries.total} attempts")
